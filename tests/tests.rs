@@ -1,34 +1,33 @@
-extern crate delaunator;
-extern crate serde_json;
-
 use delaunator::{triangulate, Point, Triangulation, EMPTY, EPSILON};
 use std::f64;
-use std::fs::File;
 
 #[test]
 fn basic() {
-    validate(&load_fixture("tests/fixtures/basic.json"));
+    validate(&load_fixture(include_str!("fixtures/ukraine.json")));
 }
 
 #[test]
 fn js_issues() {
-    validate(&load_fixture("tests/fixtures/issue11.json"));
-    validate(&load_fixture("tests/fixtures/issue13.json"));
-    validate(&load_fixture("tests/fixtures/issue24.json"));
+    validate(&load_fixture(include_str!("fixtures/issue11.json")));
+    validate(&load_fixture(include_str!("fixtures/issue13.json")));
+    validate(&load_fixture(include_str!("fixtures/issue24.json")));
+    validate(&load_fixture(include_str!("fixtures/issue43.json")));
+    validate(&load_fixture(include_str!("fixtures/issue44.json")));
 }
 
 #[test]
 fn robustness() {
-    let points = load_fixture("tests/fixtures/robust1.json");
+    let robustness1 = load_fixture(include_str!("fixtures/robustness1.json"));
 
-    validate(&points);
-    validate(&(scale_points(&points, 1e-9)));
-    validate(&(scale_points(&points, 1e-2)));
-    validate(&(scale_points(&points, 100.0)));
-    validate(&(scale_points(&points, 1e9)));
+    validate(&robustness1);
+    validate(&(scale_points(&robustness1, 1e-9)));
+    validate(&(scale_points(&robustness1, 1e-2)));
+    validate(&(scale_points(&robustness1, 100.0)));
+    validate(&(scale_points(&robustness1, 1e9)));
 
-    validate(&load_fixture("tests/fixtures/robust2.json"));
-    validate(&load_fixture("tests/fixtures/robust3.json"));
+    let robustness2 = load_fixture(include_str!("fixtures/robustness2.json"));
+    validate(&robustness2[0..100]);
+    validate(&robustness2);
 }
 
 #[test]
@@ -61,13 +60,13 @@ fn scale_points(points: &[Point], scale: f64) -> Vec<Point> {
         .map(|p| Point {
             x: p.x * scale,
             y: p.y * scale,
-        }).collect();
+        })
+        .collect();
     scaled
 }
 
-fn load_fixture(path: &str) -> Vec<Point> {
-    let file = File::open(path).unwrap();
-    let u: Vec<(f64, f64)> = serde_json::from_reader(file).unwrap();
+fn load_fixture(json: &str) -> Vec<Point> {
+    let u: Vec<(f64, f64)> = serde_json::from_str(json).unwrap();
     u.iter().map(|p| Point { x: p.0, y: p.1 }).collect()
 }
 
@@ -122,8 +121,7 @@ fn validate(points: &[Point]) {
 fn sum(x: &[f64]) -> f64 {
     let mut sum = x[0];
     let mut err: f64 = 0.0;
-    for i in 1..x.len() {
-        let k = x[i];
+    for &k in x.iter().skip(1) {
         let m = sum + k;
         err += if sum.abs() >= k.abs() {
             sum - m + k

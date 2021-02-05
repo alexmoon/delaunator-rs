@@ -9,6 +9,7 @@ license = "ISC"
 categories = ["algorithms", "data-structures"]
 keywords = ["delaunay", "triangulation", "tessellation", "spatial", "geometry"]
 authors = ["Vladimir Agafonkin <agafonkin@gmail.com>"]
+edition = "2018"
 
 [dev-dependencies]
 criterion = "0.2.5"

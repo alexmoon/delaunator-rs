@@ -1,3 +1,5 @@
+#![allow(clippy::clippy::many_single_char_names)]
+
 /*!
 A very fast 2D [Delaunay Triangulation](https://en.wikipedia.org/wiki/Delaunay_triangulation) library for Rust.
 A port of [Delaunator](https://github.com/mapbox/delaunator).
@@ -151,6 +153,10 @@ impl Triangulation {
     /// The number of triangles in the triangulation.
     pub fn len(&self) -> usize {
         self.triangles.len() / 3
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     fn add_triangle(

@@ -1,12 +1,9 @@
-#[macro_use]
-extern crate criterion;
-
-extern crate delaunator;
-extern crate rand;
-
-use criterion::{AxisScale, Criterion, ParameterizedBenchmark, PlotConfiguration};
+use criterion::{
+    criterion_group, criterion_main, AxisScale, BenchmarkId, Criterion, PlotConfiguration,
+};
 use delaunator::{triangulate, Point};
-use rand::{Rng, SeedableRng, XorShiftRng};
+use rand::{Rng, SeedableRng};
+use rand_xorshift::XorShiftRng;
 use std::iter::repeat_with;
 
 const COUNTS: &[usize] = &[100, 1000, 10_000, 100_000];
@@ -19,21 +16,20 @@ fn bench(c: &mut Criterion) {
         .take(*COUNTS.last().unwrap())
         .collect();
 
-    let bench = ParameterizedBenchmark::new(
-        "triangulate",
-        move |b, &&count| {
+    let mut group = c.benchmark_group("triangulate");
+
+    for &count in COUNTS {
+        group.bench_function(BenchmarkId::from_parameter(count), |b| {
             let points = &all_points[..count];
             b.iter(move || triangulate(points))
-        },
-        COUNTS,
-    );
+        });
+    }
 
-    c.bench(
-        "triangulate",
-        bench
-            .sample_size(20) // override to a small sample size, otherwise it takes too long
-            .plot_config(PlotConfiguration::default().summary_scale(AxisScale::Logarithmic)),
-    );
+    group
+        .sample_size(20)
+        .plot_config(PlotConfiguration::default().summary_scale(AxisScale::Logarithmic));
+
+    group.finish();
 }
 
 criterion_group!(benches, bench);

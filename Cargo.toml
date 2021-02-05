@@ -1,6 +1,6 @@
 [package]
 name = "delaunator"
-version = "0.2.0"
+version = "0.3.0"
 description = "A very fast 2D Delaunay triangulation library."
 documentation = "https://docs.rs/delaunator"
 repository = "https://github.com/mourner/delaunator-rs"
@@ -12,9 +12,10 @@ authors = ["Vladimir Agafonkin <agafonkin@gmail.com>"]
 edition = "2018"
 
 [dev-dependencies]
-criterion = "0.2.5"
-rand = "0.5.5"
-serde_json = "1.0.27"
+criterion = "0.3.4"
+rand = "0.8.3"
+rand_xorshift = "0.3.0"
+serde_json = "1.0.61"
 
 [lib]
 bench = false

@@ -8,6 +8,7 @@ fn basic() {
 
 #[test]
 fn js_issues() {
+    validate(&load_fixture(include_str!("fixtures/issue5.json")));
     validate(&load_fixture(include_str!("fixtures/issue11.json")));
     validate(&load_fixture(include_str!("fixtures/issue13.json")));
     validate(&load_fixture(include_str!("fixtures/issue24.json")));
@@ -76,6 +77,7 @@ fn validate(points: &[Point]) {
         halfedges,
         hull,
     } = triangulate(&points).expect("No triangulation exists for this input");
+    println!("{:?}", triangles);
 
     // validate halfedges
     for (i, &h) in halfedges.iter().enumerate() {

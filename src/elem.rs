@@ -183,7 +183,9 @@ impl<'a> Vertex<'a> {
     }
 
     /// An iterator over the [Triangle]s that are adjacent to this vertex.
-    pub fn triangles(&self) -> impl Iterator<Item = Triangle<'a>> {
-        self.edges().map(|x| x.left())
+    pub fn triangles(&self) -> VertexTriangleIter<'a> {
+        VertexTriangleIter {
+            inner: self.edges(),
+        }
     }
 }

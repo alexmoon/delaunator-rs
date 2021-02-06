@@ -58,6 +58,25 @@ impl<'a> Iterator for VertexEdgeIter<'a> {
 
 impl<'a> FusedIterator for VertexEdgeIter<'a> {}
 
+/// Iterates over all [Traingle]s that are adjacent to [Vertex].
+///
+/// Order of iteration is undefined (generally counter-clockwise, but will
+/// switch to clockwise if the iteration hits the convex hull).
+#[derive(Clone, Copy)]
+pub struct VertexTriangleIter<'a> {
+    pub(crate) inner: VertexEdgeIter<'a>,
+}
+
+impl<'a> Iterator for VertexTriangleIter<'a> {
+    type Item = Triangle<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next().map(|x| x.left())
+    }
+}
+
+impl<'a> FusedIterator for VertexTriangleIter<'a> {}
+
 /// Iterates over the three [HalfEdge]s of a [Triangle]
 #[derive(Clone, Copy)]
 pub struct TriangleEdgeIter<'a> {

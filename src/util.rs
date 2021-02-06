@@ -180,7 +180,7 @@ pub(crate) fn find_closest_point(points: &[Point], p0: Point) -> Option<usize> {
     let mut min_dist = f64::INFINITY;
     let mut k: usize = 0;
     for (i, &p) in points.iter().enumerate() {
-        let d = p0.dist2(p);
+        let d = p0.distance_squared(p);
         if d > 0.0 && d < min_dist {
             k = i;
             min_dist = d;
@@ -210,7 +210,7 @@ pub(crate) fn find_seed_triangle(points: &[Point]) -> Option<(usize, usize, usiz
         if i == i0 || i == i1 {
             continue;
         }
-        let r = p0.circumradius2(p1, p);
+        let r = p0.circumradius_squared(p1, p);
         if r < min_radius {
             i2 = i;
             min_radius = r;
@@ -221,7 +221,7 @@ pub(crate) fn find_seed_triangle(points: &[Point]) -> Option<(usize, usize, usiz
         None
     } else {
         // swap the order of the seed points for counter-clockwise orientation
-        Some(if p0.orient(p1, points[i2]) {
+        Some(if p0.is_clockwise(p1, points[i2]) {
             (i0, i2, i1)
         } else {
             (i0, i1, i2)

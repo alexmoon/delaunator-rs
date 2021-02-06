@@ -71,7 +71,7 @@ impl Hull {
         let start = self.prev[start.unwrap()].unwrap();
         let mut e = start;
 
-        while !p.orient(points[e], points[self.next[e].unwrap()]) {
+        while !p.is_clockwise(points[e], points[self.next[e].unwrap()]) {
             e = self.next[e].unwrap();
             if e == start {
                 return (OptionIndex::none(), false);

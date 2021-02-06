@@ -56,7 +56,7 @@ impl Triangulation {
         let mut dists: Vec<_> = points
             .iter()
             .enumerate()
-            .map(|(i, &point)| (i, center.dist2(point)))
+            .map(|(i, &point)| (i, center.distance_squared(point)))
             .collect();
 
         dists.sort_unstable_by(|&(_, da), &(_, db)| da.partial_cmp(&db).unwrap());
@@ -101,7 +101,7 @@ impl Triangulation {
             let mut n = hull.next[e].unwrap();
             loop {
                 let q = hull.next[n].unwrap();
-                if !p.orient(points[n], points[q]) {
+                if !p.is_clockwise(points[n], points[q]) {
                     break;
                 }
                 let t = triangulation.add_triangle(n, i, q, hull.tri[i], None.into(), hull.tri[n]);
@@ -114,7 +114,7 @@ impl Triangulation {
             if walk_back {
                 loop {
                     let q = hull.prev[e].unwrap();
-                    if !p.orient(points[q], points[e]) {
+                    if !p.is_clockwise(points[q], points[e]) {
                         break;
                     }
                     let t =
@@ -267,7 +267,7 @@ impl Triangulation {
         let pl = self.triangles[al];
         let p1 = self.triangles[bl];
 
-        let illegal = points[p0].in_circle(points[pr], points[pl], points[p1]);
+        let illegal = points[p1].is_in_circle(points[p0], points[pr], points[pl]);
         if illegal {
             self.triangles[a] = p1;
             self.triangles[b] = p0;

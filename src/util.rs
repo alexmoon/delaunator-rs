@@ -159,7 +159,7 @@ pub(crate) fn prev_halfedge(i: usize) -> usize {
     }
 }
 
-pub(crate) fn calc_bbox_center(points: &[Point]) -> Point {
+pub(crate) fn calc_bbox_center(points: &[Point<f64>]) -> Point<f64> {
     let mut min_x = f64::INFINITY;
     let mut min_y = f64::INFINITY;
     let mut max_x = f64::NEG_INFINITY;
@@ -176,7 +176,7 @@ pub(crate) fn calc_bbox_center(points: &[Point]) -> Point {
     }
 }
 
-pub(crate) fn find_closest_point(points: &[Point], p0: Point) -> Option<usize> {
+pub(crate) fn find_closest_point(points: &[Point<f64>], p0: Point<f64>) -> Option<usize> {
     let mut min_dist = f64::INFINITY;
     let mut k: usize = 0;
     for (i, &p) in points.iter().enumerate() {
@@ -193,7 +193,7 @@ pub(crate) fn find_closest_point(points: &[Point], p0: Point) -> Option<usize> {
     }
 }
 
-pub(crate) fn find_seed_triangle(points: &[Point]) -> Option<(usize, usize, usize)> {
+pub(crate) fn find_seed_triangle(points: &[Point<f64>]) -> Option<(usize, usize, usize)> {
     // pick a seed point close to the center
     let bbox_center = calc_bbox_center(points);
     let i0 = find_closest_point(points, bbox_center)?;

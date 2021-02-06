@@ -55,8 +55,8 @@ fn bad_input() {
     validate(&points);
 }
 
-fn scale_points(points: &[Point], scale: f64) -> Vec<Point> {
-    let scaled: Vec<Point> = points
+fn scale_points(points: &[Point<f64>], scale: f64) -> Vec<Point<f64>> {
+    let scaled: Vec<Point<f64>> = points
         .iter()
         .map(|p| Point {
             x: p.x * scale,
@@ -66,12 +66,12 @@ fn scale_points(points: &[Point], scale: f64) -> Vec<Point> {
     scaled
 }
 
-fn load_fixture(json: &str) -> Vec<Point> {
+fn load_fixture(json: &str) -> Vec<Point<f64>> {
     let u: Vec<(f64, f64)> = serde_json::from_str(json).unwrap();
     u.iter().map(|p| Point { x: p.0, y: p.1 }).collect()
 }
 
-fn validate(points: &[Point]) {
+fn validate(points: &[Point<f64>]) {
     let Triangulation {
         triangles,
         halfedges,

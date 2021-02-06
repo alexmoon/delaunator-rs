@@ -2,7 +2,7 @@ use crate::{util::OptionIndex, Point};
 
 /// A value between 0.0 and 1.0 which monotonically increases with real angle,
 /// but doesn't need expensive trigonometry.
-fn pseudo_angle(p: Point) -> f64 {
+fn pseudo_angle(p: Point<f64>) -> f64 {
     let k = p.x / (p.x.abs() + p.y.abs());
     (if p.y > 0.0 { 3.0 - k } else { 1.0 + k }) / 4.0
 }
@@ -14,11 +14,18 @@ pub(crate) struct Hull {
     pub(crate) next: Vec<OptionIndex>,
     pub(crate) tri: Vec<OptionIndex>,
     hash: Vec<OptionIndex>,
-    center: Point,
+    center: Point<f64>,
 }
 
 impl Hull {
-    pub fn new(n: usize, center: Point, i0: usize, i1: usize, i2: usize, points: &[Point]) -> Self {
+    pub fn new(
+        n: usize,
+        center: Point<f64>,
+        i0: usize,
+        i1: usize,
+        i2: usize,
+        points: &[Point<f64>],
+    ) -> Self {
         let hash_len = (n as f64).sqrt() as usize;
 
         let mut hull = Self {
@@ -48,17 +55,21 @@ impl Hull {
         hull
     }
 
-    fn hash_key(&self, p: Point) -> usize {
+    fn hash_key(&self, p: Point<f64>) -> usize {
         let len = self.hash.len();
         (((len as f64) * pseudo_angle(p - self.center)) as usize) % len
     }
 
-    pub(crate) fn hash_edge(&mut self, p: Point, i: usize) {
+    pub(crate) fn hash_edge(&mut self, p: Point<f64>, i: usize) {
         let key = self.hash_key(p);
         self.hash[key] = i.into();
     }
 
-    pub(crate) fn find_visible_edge(&self, p: Point, points: &[Point]) -> (OptionIndex, bool) {
+    pub(crate) fn find_visible_edge(
+        &self,
+        p: Point<f64>,
+        points: &[Point<f64>],
+    ) -> (OptionIndex, bool) {
         let mut start = OptionIndex::none();
         let key = self.hash_key(p);
         let len = self.hash.len();

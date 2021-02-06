@@ -1,27 +1,43 @@
-use std::ops::{Add, Mul, Sub};
+use core::f32;
+use std::ops::{Add, Div, Mul, Neg, Sub};
 
 use crate::util::ApproxEq;
 
-/// Represents a 2D point in the input vector.
-#[derive(Clone, Copy, PartialEq)]
-pub struct Point {
-    pub x: f64,
-    pub y: f64,
+pub trait Scalar:
+    Copy
+    + Add<Self, Output = Self>
+    + Sub<Self, Output = Self>
+    + Mul<Self, Output = Self>
+    + Div<Self, Output = Self>
+    + Neg<Output = Self>
+    + PartialOrd<Self>
+    + From<f32>
+{
 }
 
-impl std::fmt::Debug for Point {
+impl Scalar for f32 {}
+impl Scalar for f64 {}
+
+/// Represents a 2D point in the input vector.
+#[derive(Clone, Copy, PartialEq)]
+pub struct Point<T: Scalar> {
+    pub x: T,
+    pub y: T,
+}
+
+impl<T: Scalar + std::fmt::Debug> std::fmt::Debug for Point<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "[{}, {}]", self.x, self.y)
+        write!(f, "[{:?}, {:?}]", self.x, self.y)
     }
 }
 
-impl Point {
-    pub fn new(x: f64, y: f64) -> Self {
+impl<T: Scalar> Point<T> {
+    pub fn new(x: T, y: T) -> Self {
         Point { x, y }
     }
 
     /// The square of the length of `self`.
-    pub fn length_squared(self) -> f64 {
+    pub fn length_squared(self) -> T {
         self.x * self.x + self.y * self.y
     }
 
@@ -34,34 +50,34 @@ impl Point {
     }
 
     /// The perpendicular dot product of `self` and `other`.
-    pub fn perp_dot(self, other: Point) -> f64 {
+    pub fn perp_dot(self, other: Self) -> T {
         self.x * other.y - self.y * other.x
     }
 
     /// The square of the distance between `self` and `p`.
-    pub fn distance_squared(self, p: Self) -> f64 {
+    pub fn distance_squared(self, p: Self) -> T {
         (self - p).length_squared()
     }
 
     /// Tests if the path `self` to `q` to `r` goes in a clockwise direction
     /// (assuming a right-handed coordinate system).
     pub fn is_clockwise(self, q: Self, r: Self) -> bool {
-        (r - q).perp_dot(q - self) > 0.0
+        (r - q).perp_dot(q - self) > 0.0.into()
     }
 
-    fn circumdelta(self, b: Self, c: Self) -> Point {
+    fn circumdelta(self, b: Self, c: Self) -> Self {
         let d = b - self;
         let e = c - self;
 
         let bl = d.length_squared();
         let cl = e.length_squared();
-        let k = 0.5 / d.perp_dot(e);
+        let k: T = T::from(0.5) / d.perp_dot(e);
 
-        k * (cl * d - bl * e).perp()
+        (d * cl - e * bl).perp() * k
     }
 
     /// The square of the radius of the circumcircle of `self`, `b`, and `c`.
-    pub fn circumradius_squared(self, b: Self, c: Self) -> f64 {
+    pub fn circumradius_squared(self, b: Self, c: Self) -> T {
         self.circumdelta(b, c).length_squared()
     }
 
@@ -71,7 +87,7 @@ impl Point {
     }
 
     /// Tests if `self` is in the circumcircle of `a`, `b`, and `c`.
-    pub fn is_in_circle(self, a: Point, b: Self, c: Self) -> bool {
+    pub fn is_in_circle(self, a: Self, b: Self, c: Self) -> bool {
         let d = a - self;
         let e = b - self;
         let f = c - self;
@@ -80,18 +96,21 @@ impl Point {
         let bp = e.length_squared();
         let cp = f.length_squared();
 
-        let g = cp * e - bp * f;
+        let g = e * cp - f * bp;
 
-        d.perp_dot(g) + ap * e.perp_dot(f) > 0.0
+        d.perp_dot(g) + ap * e.perp_dot(f) > 0.0.into()
     }
 
-    pub fn nearly_equals(self, p: Self) -> bool {
+    pub fn nearly_equals(self, p: Self) -> bool
+    where
+        T: ApproxEq,
+    {
         self.x.approx_eq(p.x) && self.y.approx_eq(p.y)
     }
 }
 
-impl Add<Point> for Point {
-    type Output = Point;
+impl<T: Scalar> Add<Point<T>> for Point<T> {
+    type Output = Point<T>;
 
     fn add(self, rhs: Self) -> Self::Output {
         Point {
@@ -101,8 +120,8 @@ impl Add<Point> for Point {
     }
 }
 
-impl Sub<Point> for Point {
-    type Output = Point;
+impl<T: Scalar> Sub<Point<T>> for Point<T> {
+    type Output = Point<T>;
 
     fn sub(self, rhs: Self) -> Self::Output {
         Point {
@@ -112,21 +131,10 @@ impl Sub<Point> for Point {
     }
 }
 
-impl Mul<Point> for f64 {
-    type Output = Point;
+impl<T: Scalar> Mul<T> for Point<T> {
+    type Output = Point<T>;
 
-    fn mul(self, rhs: Point) -> Self::Output {
-        Point {
-            x: self * rhs.x,
-            y: self * rhs.y,
-        }
-    }
-}
-
-impl Mul<f64> for Point {
-    type Output = Point;
-
-    fn mul(self, rhs: f64) -> Self::Output {
+    fn mul(self, rhs: T) -> Self::Output {
         Point {
             x: self.x * rhs,
             y: self.y * rhs,

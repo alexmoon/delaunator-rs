@@ -1,7 +1,7 @@
-use crate::point::Point;
+use crate::point::{Point, Scalar};
 
-impl From<mint::Point2<f64>> for Point {
-    fn from(other: mint::Point2<f64>) -> Self {
+impl<T: Scalar> From<mint::Point2<T>> for Point<T> {
+    fn from(other: mint::Point2<T>) -> Self {
         Point {
             x: other.x,
             y: other.y,
@@ -9,8 +9,8 @@ impl From<mint::Point2<f64>> for Point {
     }
 }
 
-impl From<Point> for mint::Point2<f64> {
-    fn from(other: Point) -> Self {
+impl<T: Scalar> From<Point<T>> for mint::Point2<T> {
+    fn from(other: Point<T>) -> Self {
         Self {
             x: other.x,
             y: other.y,

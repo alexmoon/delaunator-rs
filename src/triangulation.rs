@@ -34,7 +34,7 @@ impl Triangulation {
 
     /// Triangulate a set of 2D points.
     /// Returns `None` if no triangulation exists for the input (e.g. all points are collinear).
-    pub fn new(points: &[Point]) -> Option<Triangulation> {
+    pub fn new(points: &[Point<f64>]) -> Option<Triangulation> {
         Some(Triangulation::with_seed_triangle(
             points,
             util::find_seed_triangle(points)?,
@@ -42,7 +42,7 @@ impl Triangulation {
     }
 
     pub fn with_seed_triangle(
-        points: &[Point],
+        points: &[Point<f64>],
         seed_triangle: (usize, usize, usize),
     ) -> Triangulation {
         let n = points.len();
@@ -234,7 +234,7 @@ impl Triangulation {
         t
     }
 
-    fn legalize(&mut self, a: usize, points: &[Point], hull: &mut Hull) -> usize {
+    fn legalize(&mut self, a: usize, points: &[Point<f64>], hull: &mut Hull) -> usize {
         let b = self.halfedges[a];
 
         // if the pair of triangles doesn't satisfy the Delaunay condition

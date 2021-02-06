@@ -75,6 +75,7 @@ fn validate(points: &[Point<f64>]) {
         triangles,
         halfedges,
         hull,
+        ..
     } = Triangulation::new(&points).expect("No triangulation exists for this input");
 
     // validate halfedges

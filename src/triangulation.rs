@@ -8,6 +8,12 @@ use crate::{
 
 /// Result of the Delaunay triangulation.
 pub struct Triangulation {
+    #[cfg(feature = "vertices")]
+    /// A vector of triangle point indices where the `i`-th vertex in the array
+    /// corresponds to vertex `triangles[i]` for the first triangle containing
+    /// vertex `i`.
+    pub vertices: Vec<usize>,
+
     /// A vector of point indices where each triple represents a Delaunay triangle.
     /// All triangles are directed counter-clockwise in a right-handed coordinate system.
     pub triangles: Vec<usize>,
@@ -28,6 +34,8 @@ impl Triangulation {
     fn alloc(n: usize) -> Self {
         let max_triangles = 2 * n - 5;
         Self {
+            #[cfg(feature = "vertices")]
+            vertices: Vec::new(),
             triangles: Vec::with_capacity(max_triangles * 3),
             halfedges: Vec::with_capacity(max_triangles * 3),
             hull: Vec::new(),
@@ -154,6 +162,16 @@ impl Triangulation {
         triangulation.triangles.shrink_to_fit();
         triangulation.halfedges.shrink_to_fit();
 
+        #[cfg(feature = "vertices")]
+        {
+            triangulation.vertices.resize(n, usize::max_value());
+            for (i, &j) in triangulation.triangles.iter().enumerate() {
+                if triangulation.vertices[j] == usize::max_value() {
+                    triangulation.vertices[j] = i;
+                }
+            }
+        }
+
         triangulation
     }
 
@@ -179,6 +197,27 @@ impl Triangulation {
             triangulation: self,
             index: 0,
             end: self.halfedges.len(),
+        }
+    }
+
+    #[cfg(feature = "vertices")]
+    pub fn vertices(&self) -> VertexIter<'_> {
+        VertexIter {
+            triangulation: self,
+            index: 0,
+            end: self.vertices.len(),
+        }
+    }
+
+    #[cfg(feature = "vertices")]
+    pub fn get_vertex(&self, id: usize) -> Option<Vertex<'_>> {
+        if id < self.vertices.len() {
+            Some(Vertex {
+                triangulation: self,
+                index: self.vertices[id],
+            })
+        } else {
+            None
         }
     }
 

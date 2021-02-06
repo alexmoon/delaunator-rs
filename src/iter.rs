@@ -265,6 +265,58 @@ impl<'a> ExactSizeIterator for HalfEdgeIter<'a> {
     }
 }
 
+#[cfg(feature = "vertices")]
+/// Iterates over the [Vertex]es in a [Triangulation]
+pub struct VertexIter<'a> {
+    pub(crate) triangulation: &'a Triangulation,
+    pub(crate) index: usize,
+    pub(crate) end: usize,
+}
+
+#[cfg(feature = "vertices")]
+impl<'a> Iterator for VertexIter<'a> {
+    type Item = Vertex<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.end {
+            let index = self.triangulation.vertices[self.index];
+            self.index += 1;
+            Some(Vertex {
+                triangulation: self.triangulation,
+                index,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(feature = "vertices")]
+impl<'a> DoubleEndedIterator for VertexIter<'a> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        if self.index < self.end {
+            self.end -= 1;
+            let index = self.triangulation.vertices[self.end];
+            Some(Vertex {
+                triangulation: self.triangulation,
+                index,
+            })
+        } else {
+            None
+        }
+    }
+}
+
+#[cfg(feature = "vertices")]
+impl<'a> FusedIterator for VertexIter<'a> {}
+
+#[cfg(feature = "vertices")]
+impl<'a> ExactSizeIterator for VertexIter<'a> {
+    fn len(&self) -> usize {
+        self.end - self.index
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{Point, Triangulation};

@@ -3,13 +3,19 @@ name = "delaunator"
 version = "0.3.0"
 description = "A very fast 2D Delaunay triangulation library."
 documentation = "https://docs.rs/delaunator"
-repository = "https://github.com/mourner/delaunator-rs"
+repository = "https://github.com/alexmoon/delaunator-rs"
 readme = "README.md"
 license = "ISC"
 categories = ["algorithms", "data-structures"]
 keywords = ["delaunay", "triangulation", "tessellation", "spatial", "geometry"]
-authors = ["Vladimir Agafonkin <agafonkin@gmail.com>"]
+authors = [
+    "Vladimir Agafonkin <agafonkin@gmail.com>",
+    "Alex Moon <alex.r.moon@gmail.com>",
+]
 edition = "2018"
+
+[features]
+vertices = []
 
 [dependencies]
 mint = { version = "0.5.6", optional = true }

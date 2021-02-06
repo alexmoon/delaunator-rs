@@ -1,4 +1,4 @@
-use delaunator::{triangulate, Point, Triangulation, EMPTY, EPSILON};
+use delaunator::{triangulate, Point, Triangulation, EMPTY};
 use std::f64;
 
 #[test]
@@ -77,7 +77,6 @@ fn validate(points: &[Point]) {
         halfedges,
         hull,
     } = triangulate(&points).expect("No triangulation exists for this input");
-    println!("{:?}", triangles);
 
     // validate halfedges
     for (i, &h) in halfedges.iter().enumerate() {
@@ -94,7 +93,7 @@ fn validate(points: &[Point]) {
         while i < hull.len() {
             let p0 = &points[hull[j]];
             let p = &points[hull[i]];
-            hull_areas.push((p.x - p0.x) * (p.y + p0.y));
+            hull_areas.push((p.x + p0.x) * (p.y - p0.y));
             j = i;
             i += 1;
         }
@@ -114,9 +113,13 @@ fn validate(points: &[Point]) {
     };
 
     let err = ((hull_area - triangles_area) / hull_area).abs();
-    if err > EPSILON {
-        panic!("Triangulation is broken: {} error", err);
-    }
+    const EPSILON: f64 = f64::EPSILON * 2.0;
+    assert!(
+        err <= EPSILON,
+        "Triangulation is broken: {} error, points: {:?}",
+        err,
+        points
+    );
 }
 
 // Kahan and Babuska summation, Neumaier variant; accumulates less FP error

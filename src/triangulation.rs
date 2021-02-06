@@ -4,11 +4,6 @@ use crate::iter::*;
 use crate::util::{self, OptionIndex};
 use crate::Point;
 
-/// Represents the area outside of the triangulation.
-/// Halfedges on the convex hull (which don't have an adjacent halfedge)
-/// will have this value.
-pub const EMPTY: usize = usize::max_value();
-
 /// Result of the Delaunay triangulation.
 pub struct Triangulation {
     /// A vector of point indices where each triple represents a Delaunay triangle.
@@ -82,72 +77,60 @@ impl Triangulation {
             }
 
             // find a visible edge on the convex hull using edge hash
-            let (mut e, walk_back) = hull.find_visible_edge(p, points);
-            if e == EMPTY {
-                continue; // likely a near-duplicate point; skip it
-            }
+            let (e, walk_back) = hull.find_visible_edge(p, points);
+            let mut e = match e.get() {
+                None => continue, // likely a near-duplicate point; skip it
+                Some(e) => e,
+            };
 
             // add the first triangle from the point
             let t = triangulation.add_triangle(
                 e,
                 i,
-                hull.next[e],
+                hull.next[e].unwrap(),
                 None.into(),
                 None.into(),
-                hull.tri[e].into(),
+                hull.tri[e],
             );
 
             // recursively flip triangles from the point until they satisfy the Delaunay condition
-            hull.tri[i] = triangulation.legalize(t + 2, points, &mut hull);
-            hull.tri[e] = t; // keep track of boundary triangles on the hull
+            hull.tri[i] = triangulation.legalize(t + 2, points, &mut hull).into();
+            hull.tri[e] = t.into(); // keep track of boundary triangles on the hull
 
             // walk forward through the hull, adding more triangles and flipping recursively
-            let mut n = hull.next[e];
+            let mut n = hull.next[e].unwrap();
             loop {
-                let q = hull.next[n];
+                let q = hull.next[n].unwrap();
                 if !p.orient(points[n], points[q]) {
                     break;
                 }
-                let t = triangulation.add_triangle(
-                    n,
-                    i,
-                    q,
-                    hull.tri[i].into(),
-                    None.into(),
-                    hull.tri[n].into(),
-                );
-                hull.tri[i] = triangulation.legalize(t + 2, points, &mut hull);
-                hull.next[n] = EMPTY; // mark as removed
+                let t = triangulation.add_triangle(n, i, q, hull.tri[i], None.into(), hull.tri[n]);
+                hull.tri[i] = triangulation.legalize(t + 2, points, &mut hull).into();
+                hull.next[n] = OptionIndex::none(); // mark as removed
                 n = q;
             }
 
             // walk backward from the other side, adding more triangles and flipping
             if walk_back {
                 loop {
-                    let q = hull.prev[e];
+                    let q = hull.prev[e].unwrap();
                     if !p.orient(points[q], points[e]) {
                         break;
                     }
-                    let t = triangulation.add_triangle(
-                        q,
-                        i,
-                        e,
-                        None.into(),
-                        hull.tri[e].into(),
-                        hull.tri[q].into(),
-                    );
+                    let t =
+                        triangulation.add_triangle(q, i, e, None.into(), hull.tri[e], hull.tri[q]);
                     triangulation.legalize(t + 2, points, &mut hull);
-                    hull.tri[q] = t;
-                    hull.next[e] = EMPTY; // mark as removed
+                    hull.tri[q] = t.into();
+                    hull.next[e] = OptionIndex::none(); // mark as removed
                     e = q;
                 }
             }
 
             // update the hull indices
-            hull.prev[i] = e;
-            hull.next[i] = n;
-            hull.prev[n] = i;
-            hull.next[e] = i;
+            hull.prev[i] = e.into();
+            hull.next[i] = n.into();
+            hull.prev[n] = i.into();
+            hull.next[e] = i.into();
             hull.start = e;
 
             // save the two new edges in the hash table
@@ -159,7 +142,7 @@ impl Triangulation {
         let mut e = hull.start;
         loop {
             triangulation.hull.push(e);
-            e = hull.next[e];
+            e = hull.next[e].unwrap();
             if e == hull.start {
                 break;
             }

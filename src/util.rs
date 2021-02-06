@@ -23,17 +23,23 @@ pub struct OptionIndex(usize);
 
 impl OptionIndex {
     #[inline(always)]
-    pub const fn none() -> Self {
-        OptionIndex(usize::max_value())
-    }
-
-    #[inline(always)]
     pub const fn new(n: usize) -> Option<Self> {
         if n == usize::max_value() {
             None
         } else {
             Some(OptionIndex(n))
         }
+    }
+
+    #[inline(always)]
+    pub const fn none() -> Self {
+        OptionIndex(usize::max_value())
+    }
+
+    #[inline(always)]
+    pub fn some(n: usize) -> Self {
+        assert!(n != usize::max_value());
+        OptionIndex(n)
     }
 
     #[inline(always)]
@@ -58,6 +64,16 @@ impl OptionIndex {
         } else {
             Some(self.0)
         }
+    }
+
+    #[inline(always)]
+    pub fn unwrap(self) -> usize {
+        self.get().unwrap()
+    }
+
+    #[inline(always)]
+    pub fn expect(self, msg: &str) -> usize {
+        self.get().expect(msg)
     }
 }
 

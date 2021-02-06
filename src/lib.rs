@@ -25,6 +25,7 @@ pub mod elem;
 mod hull;
 pub mod iter;
 pub mod point;
+pub mod traits;
 pub mod triangulation;
 pub mod util;
 

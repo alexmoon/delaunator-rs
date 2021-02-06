@@ -1,4 +1,8 @@
-use crate::{point::Scalar, util::OptionIndex, Point};
+use crate::{
+    traits::{HasPosition, Scalar},
+    util::OptionIndex,
+    Point,
+};
 
 /// A value between 0.0 and 1.0 which monotonically increases with real angle,
 /// but doesn't need expensive trigonometry.
@@ -22,13 +26,13 @@ pub(crate) struct Hull<T: Scalar> {
 }
 
 impl<T: Scalar> Hull<T> {
-    pub fn new(
+    pub fn new<P: HasPosition<T>>(
         n: usize,
         center: Point<T>,
         i0: usize,
         i1: usize,
         i2: usize,
-        points: &[Point<T>],
+        points: &[P],
     ) -> Self {
         let hash_len = (n as f64).sqrt() as usize;
 
@@ -52,9 +56,9 @@ impl<T: Scalar> Hull<T> {
         hull.tri[i1] = 1.into();
         hull.tri[i2] = 2.into();
 
-        hull.hash_edge(points[i0], i0);
-        hull.hash_edge(points[i1], i1);
-        hull.hash_edge(points[i2], i2);
+        hull.hash_edge(points[i0].pos(), i0);
+        hull.hash_edge(points[i1].pos(), i1);
+        hull.hash_edge(points[i2].pos(), i2);
 
         hull
     }
@@ -69,10 +73,10 @@ impl<T: Scalar> Hull<T> {
         self.hash[key] = i.into();
     }
 
-    pub(crate) fn find_visible_edge(
+    pub(crate) fn find_visible_edge<P: HasPosition<T>>(
         &self,
         p: Point<T>,
-        points: &[Point<T>],
+        points: &[P],
     ) -> (OptionIndex, bool) {
         let mut start = OptionIndex::none();
         let key = self.hash_key(p);
@@ -86,7 +90,7 @@ impl<T: Scalar> Hull<T> {
         let start = self.prev[start.unwrap()].unwrap();
         let mut e = start;
 
-        while !p.is_clockwise(points[e], points[self.next[e].unwrap()]) {
+        while !p.is_clockwise(points[e].pos(), points[self.next[e].unwrap()].pos()) {
             e = self.next[e].unwrap();
             if e == start {
                 return (OptionIndex::none(), false);

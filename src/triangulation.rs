@@ -1,10 +1,10 @@
-use util::ApproxEq;
-
-use crate::hull::Hull;
-use crate::iter::*;
-use crate::util::{self, OptionIndex};
-use crate::Point;
-use crate::{elem::*, point::Scalar};
+use crate::{
+    elem::*,
+    hull::Hull,
+    iter::*,
+    traits::{ApproxEq, HasPosition, Scalar},
+    util::{self, OptionIndex},
+};
 
 /// Result of the Delaunay triangulation.
 pub struct Triangulation {
@@ -36,20 +36,22 @@ impl Triangulation {
 
     /// Triangulate a set of 2D points.
     /// Returns `None` if no triangulation exists for the input (e.g. all points are collinear).
-    pub fn new<T: Scalar + ApproxEq>(points: &[Point<T>]) -> Option<Triangulation> {
+    pub fn new<T: Scalar + ApproxEq, P: HasPosition<T>>(points: &[P]) -> Option<Triangulation> {
         Some(Triangulation::with_seed_triangle(
             points,
             util::find_seed_triangle(points)?,
         ))
     }
 
-    pub fn with_seed_triangle<T: Scalar + ApproxEq>(
-        points: &[Point<T>],
+    pub fn with_seed_triangle<T: Scalar + ApproxEq, P: HasPosition<T>>(
+        points: &[P],
         seed_triangle: (usize, usize, usize),
     ) -> Triangulation {
         let n = points.len();
         let (i0, i1, i2) = seed_triangle;
-        let center = points[i0].circumcenter(points[i1], points[i2]);
+        let center = points[i0]
+            .pos()
+            .circumcenter(points[i1].pos(), points[i2].pos());
 
         let mut triangulation = Triangulation::alloc(n);
         triangulation.add_triangle(i0, i1, i2, None.into(), None.into(), None.into());
@@ -58,7 +60,7 @@ impl Triangulation {
         let mut dists: Vec<_> = points
             .iter()
             .enumerate()
-            .map(|(i, &point)| (i, center.distance_squared(point)))
+            .map(|(i, point)| (i, center.distance_squared(point.pos())))
             .collect();
 
         dists.sort_unstable_by(|&(_, da), &(_, db)| da.partial_cmp(&db).unwrap());
@@ -66,11 +68,10 @@ impl Triangulation {
         let mut hull = Hull::new(n, center, i0, i1, i2, points);
 
         for (k, &(i, _)) in dists.iter().enumerate() {
-            let p = points[i];
+            let p = points[i].pos();
 
             // skip near-duplicates
-            if k > 0 && p.nearly_equals(points[dists[k - 1].0]) {
-                println!("Dropping point");
+            if k > 0 && p.nearly_equals(points[dists[k - 1].0].pos()) {
                 continue;
             }
             // skip seed triangle points
@@ -103,7 +104,7 @@ impl Triangulation {
             let mut n = hull.next[e].unwrap();
             loop {
                 let q = hull.next[n].unwrap();
-                if !p.is_clockwise(points[n], points[q]) {
+                if !p.is_clockwise(points[n].pos(), points[q].pos()) {
                     break;
                 }
                 let t = triangulation.add_triangle(n, i, q, hull.tri[i], None.into(), hull.tri[n]);
@@ -116,7 +117,7 @@ impl Triangulation {
             if walk_back {
                 loop {
                     let q = hull.prev[e].unwrap();
-                    if !p.is_clockwise(points[q], points[e]) {
+                    if !p.is_clockwise(points[q].pos(), points[e].pos()) {
                         break;
                     }
                     let t =
@@ -137,7 +138,7 @@ impl Triangulation {
 
             // save the two new edges in the hash table
             hull.hash_edge(p, i);
-            hull.hash_edge(points[e], e);
+            hull.hash_edge(points[e].pos(), e);
         }
 
         // expose hull as a vector of point indices
@@ -236,7 +237,12 @@ impl Triangulation {
         t
     }
 
-    fn legalize<T: Scalar>(&mut self, a: usize, points: &[Point<T>], hull: &mut Hull<T>) -> usize {
+    fn legalize<T: Scalar, P: HasPosition<T>>(
+        &mut self,
+        a: usize,
+        points: &[P],
+        hull: &mut Hull<T>,
+    ) -> usize {
         let b = self.halfedges[a];
 
         // if the pair of triangles doesn't satisfy the Delaunay condition
@@ -269,7 +275,10 @@ impl Triangulation {
         let pl = self.triangles[al];
         let p1 = self.triangles[bl];
 
-        let illegal = points[p1].is_in_circle(points[p0], points[pr], points[pl]);
+        let illegal =
+            points[p1]
+                .pos()
+                .is_in_circle(points[p0].pos(), points[pr].pos(), points[pl].pos());
         if illegal {
             self.triangles[a] = p1;
             self.triangles[b] = p0;

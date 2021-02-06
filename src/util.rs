@@ -1,23 +1,7 @@
-use crate::{point::Scalar, Point};
-
-/// Provides approximate equality for floating point values.
-pub trait ApproxEq: Copy {
-    fn approx_eq(self, other: Self) -> bool;
-}
-
-impl ApproxEq for f32 {
-    fn approx_eq(self, other: Self) -> bool {
-        const EPSILON: f32 = 2.0 * std::f32::EPSILON;
-        (self - other).abs() <= EPSILON
-    }
-}
-
-impl ApproxEq for f64 {
-    fn approx_eq(self, other: Self) -> bool {
-        const EPSILON: f64 = 2.0 * std::f64::EPSILON;
-        (self - other).abs() <= EPSILON
-    }
-}
+use crate::{
+    traits::{HasPosition, Scalar},
+    Point,
+};
 
 /// A space-efficient version of an `Option<usize>`.
 ///
@@ -159,12 +143,13 @@ pub(crate) fn prev_halfedge(i: usize) -> usize {
     }
 }
 
-pub(crate) fn calc_bbox_center<T: Scalar>(points: &[Point<T>]) -> Point<T> {
+pub(crate) fn calc_bbox_center<T: Scalar, P: HasPosition<T>>(points: &[P]) -> Point<T> {
     let mut min_x = T::infinity();
     let mut min_y = T::infinity();
     let mut max_x = -T::infinity();
     let mut max_y = -T::infinity();
     for p in points.iter() {
+        let p = p.pos();
         min_x = min_x.min(p.x);
         min_y = min_y.min(p.y);
         max_x = max_x.max(p.x);
@@ -176,11 +161,14 @@ pub(crate) fn calc_bbox_center<T: Scalar>(points: &[Point<T>]) -> Point<T> {
     }
 }
 
-pub(crate) fn find_closest_point<T: Scalar>(points: &[Point<T>], p0: Point<T>) -> Option<usize> {
+pub(crate) fn find_closest_point<T: Scalar, P: HasPosition<T>>(
+    points: &[P],
+    p0: Point<T>,
+) -> Option<usize> {
     let mut min_dist = T::infinity();
     let mut k: usize = 0;
-    for (i, &p) in points.iter().enumerate() {
-        let d = p0.distance_squared(p);
+    for (i, p) in points.iter().enumerate() {
+        let d = p0.distance_squared(p.pos());
         if d > 0.0.into() && d < min_dist {
             k = i;
             min_dist = d;
@@ -193,23 +181,26 @@ pub(crate) fn find_closest_point<T: Scalar>(points: &[Point<T>], p0: Point<T>) -
     }
 }
 
-pub(crate) fn find_seed_triangle<T: Scalar>(points: &[Point<T>]) -> Option<(usize, usize, usize)> {
+pub(crate) fn find_seed_triangle<T: Scalar, P: HasPosition<T>>(
+    points: &[P],
+) -> Option<(usize, usize, usize)> {
     // pick a seed point close to the center
     let bbox_center = calc_bbox_center(points);
     let i0 = find_closest_point(points, bbox_center)?;
-    let p0 = points[i0];
+    let p0 = points[i0].pos();
 
     // find the point closest to the seed
     let i1 = find_closest_point(points, p0)?;
-    let p1 = points[i1];
+    let p1 = points[i1].pos();
 
     // find the third point which forms the smallest circumcircle with the first two
     let mut min_radius = T::infinity();
     let mut i2: usize = 0;
-    for (i, &p) in points.iter().enumerate() {
+    for (i, p) in points.iter().enumerate() {
         if i == i0 || i == i1 {
             continue;
         }
+        let p = p.pos();
         let r = p0.circumradius_squared(p1, p);
         if r < min_radius {
             i2 = i;
@@ -221,7 +212,7 @@ pub(crate) fn find_seed_triangle<T: Scalar>(points: &[Point<T>]) -> Option<(usiz
         None
     } else {
         // swap the order of the seed points for counter-clockwise orientation
-        Some(if p0.is_clockwise(p1, points[i2]) {
+        Some(if p0.is_clockwise(p1, points[i2].pos()) {
             (i0, i2, i1)
         } else {
             (i0, i1, i2)

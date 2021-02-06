@@ -1,5 +1,4 @@
 use delaunator::{Point, Triangulation};
-use std::f64;
 
 #[test]
 fn basic() {
@@ -113,19 +112,20 @@ fn validate(points: &[Point<f64>]) {
     };
 
     let err = ((hull_area - triangles_area) / hull_area).abs();
+    // const EPSILON: f32 = f32::EPSILON * 4.0;
     const EPSILON: f64 = f64::EPSILON * 2.0;
     assert!(
         err <= EPSILON,
-        "Triangulation is broken: {} error, points: {:?}",
+        "Triangulation is broken: {} error, epsilon: {}",
         err,
-        points
+        EPSILON
     );
 }
 
 // Kahan and Babuska summation, Neumaier variant; accumulates less FP error
 fn sum(x: &[f64]) -> f64 {
     let mut sum = x[0];
-    let mut err: f64 = 0.0;
+    let mut err = 0.0;
     for &k in x.iter().skip(1) {
         let m = sum + k;
         err += if sum.abs() >= k.abs() {

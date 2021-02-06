@@ -58,7 +58,7 @@ impl<'a> Iterator for VertexEdgeIter<'a> {
 
 impl<'a> FusedIterator for VertexEdgeIter<'a> {}
 
-/// Iterates over all [Traingle]s that are adjacent to [Vertex].
+/// Iterates over all [Triangle]s that are adjacent to [Vertex].
 ///
 /// Order of iteration is undefined (generally counter-clockwise, but will
 /// switch to clockwise if the iteration hits the convex hull).

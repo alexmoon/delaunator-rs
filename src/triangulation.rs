@@ -1,8 +1,10 @@
-use crate::elem::*;
+use util::ApproxEq;
+
 use crate::hull::Hull;
 use crate::iter::*;
 use crate::util::{self, OptionIndex};
 use crate::Point;
+use crate::{elem::*, point::Scalar};
 
 /// Result of the Delaunay triangulation.
 pub struct Triangulation {
@@ -34,15 +36,15 @@ impl Triangulation {
 
     /// Triangulate a set of 2D points.
     /// Returns `None` if no triangulation exists for the input (e.g. all points are collinear).
-    pub fn new(points: &[Point<f64>]) -> Option<Triangulation> {
+    pub fn new<T: Scalar + ApproxEq>(points: &[Point<T>]) -> Option<Triangulation> {
         Some(Triangulation::with_seed_triangle(
             points,
             util::find_seed_triangle(points)?,
         ))
     }
 
-    pub fn with_seed_triangle(
-        points: &[Point<f64>],
+    pub fn with_seed_triangle<T: Scalar + ApproxEq>(
+        points: &[Point<T>],
         seed_triangle: (usize, usize, usize),
     ) -> Triangulation {
         let n = points.len();
@@ -234,7 +236,7 @@ impl Triangulation {
         t
     }
 
-    fn legalize(&mut self, a: usize, points: &[Point<f64>], hull: &mut Hull<f64>) -> usize {
+    fn legalize<T: Scalar>(&mut self, a: usize, points: &[Point<T>], hull: &mut Hull<T>) -> usize {
         let b = self.halfedges[a];
 
         // if the pair of triangles doesn't satisfy the Delaunay condition

@@ -15,17 +15,52 @@ pub trait Scalar:
     + Into<f64>
 {
     fn abs(self) -> Self;
+    fn min(self, other: Self) -> Self;
+    fn max(self, other: Self) -> Self;
+    fn infinity() -> Self;
 }
 
 impl Scalar for f32 {
+    #[inline(always)]
     fn abs(self) -> Self {
         self.abs()
+    }
+
+    #[inline(always)]
+    fn min(self, other: Self) -> Self {
+        self.min(other)
+    }
+
+    #[inline(always)]
+    fn max(self, other: Self) -> Self {
+        self.max(other)
+    }
+
+    #[inline(always)]
+    fn infinity() -> Self {
+        f32::INFINITY
     }
 }
 
 impl Scalar for f64 {
+    #[inline(always)]
     fn abs(self) -> Self {
         self.abs()
+    }
+
+    #[inline(always)]
+    fn min(self, other: Self) -> Self {
+        self.min(other)
+    }
+
+    #[inline(always)]
+    fn max(self, other: Self) -> Self {
+        self.max(other)
+    }
+
+    #[inline(always)]
+    fn infinity() -> Self {
+        f64::INFINITY
     }
 }
 

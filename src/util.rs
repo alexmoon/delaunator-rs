@@ -1,4 +1,4 @@
-use crate::Point;
+use crate::{point::Scalar, Point};
 
 /// Provides approximate equality for floating point values.
 pub trait ApproxEq: Copy {
@@ -159,11 +159,11 @@ pub(crate) fn prev_halfedge(i: usize) -> usize {
     }
 }
 
-pub(crate) fn calc_bbox_center(points: &[Point<f64>]) -> Point<f64> {
-    let mut min_x = f64::INFINITY;
-    let mut min_y = f64::INFINITY;
-    let mut max_x = f64::NEG_INFINITY;
-    let mut max_y = f64::NEG_INFINITY;
+pub(crate) fn calc_bbox_center<T: Scalar>(points: &[Point<T>]) -> Point<T> {
+    let mut min_x = T::infinity();
+    let mut min_y = T::infinity();
+    let mut max_x = -T::infinity();
+    let mut max_y = -T::infinity();
     for p in points.iter() {
         min_x = min_x.min(p.x);
         min_y = min_y.min(p.y);
@@ -171,29 +171,29 @@ pub(crate) fn calc_bbox_center(points: &[Point<f64>]) -> Point<f64> {
         max_y = max_y.max(p.y);
     }
     Point {
-        x: (min_x + max_x) / 2.0,
-        y: (min_y + max_y) / 2.0,
+        x: (min_x + max_x) / 2.0.into(),
+        y: (min_y + max_y) / 2.0.into(),
     }
 }
 
-pub(crate) fn find_closest_point(points: &[Point<f64>], p0: Point<f64>) -> Option<usize> {
-    let mut min_dist = f64::INFINITY;
+pub(crate) fn find_closest_point<T: Scalar>(points: &[Point<T>], p0: Point<T>) -> Option<usize> {
+    let mut min_dist = T::infinity();
     let mut k: usize = 0;
     for (i, &p) in points.iter().enumerate() {
         let d = p0.distance_squared(p);
-        if d > 0.0 && d < min_dist {
+        if d > 0.0.into() && d < min_dist {
             k = i;
             min_dist = d;
         }
     }
-    if min_dist == f64::INFINITY {
+    if min_dist == T::infinity() {
         None
     } else {
         Some(k)
     }
 }
 
-pub(crate) fn find_seed_triangle(points: &[Point<f64>]) -> Option<(usize, usize, usize)> {
+pub(crate) fn find_seed_triangle<T: Scalar>(points: &[Point<T>]) -> Option<(usize, usize, usize)> {
     // pick a seed point close to the center
     let bbox_center = calc_bbox_center(points);
     let i0 = find_closest_point(points, bbox_center)?;
@@ -204,7 +204,7 @@ pub(crate) fn find_seed_triangle(points: &[Point<f64>]) -> Option<(usize, usize,
     let p1 = points[i1];
 
     // find the third point which forms the smallest circumcircle with the first two
-    let mut min_radius = f64::INFINITY;
+    let mut min_radius = T::infinity();
     let mut i2: usize = 0;
     for (i, &p) in points.iter().enumerate() {
         if i == i0 || i == i1 {
@@ -217,7 +217,7 @@ pub(crate) fn find_seed_triangle(points: &[Point<f64>]) -> Option<(usize, usize,
         }
     }
 
-    if min_radius == f64::INFINITY {
+    if min_radius == T::infinity() {
         None
     } else {
         // swap the order of the seed points for counter-clockwise orientation

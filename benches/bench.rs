@@ -11,7 +11,7 @@ const COUNTS: &[usize] = &[100, 1000, 10_000, 100_000];
 fn bench(c: &mut Criterion) {
     let mut rng = XorShiftRng::from_seed([0; 16]);
 
-    let all_points: Vec<_> = repeat_with(|| rng.gen())
+    let all_points: Vec<_> = repeat_with(|| rng.gen::<(f64, f64)>())
         .map(|(x, y)| Point { x, y })
         .take(*COUNTS.last().unwrap())
         .collect();

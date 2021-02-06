@@ -3,7 +3,7 @@ use std::iter::repeat_with;
 const N: usize = 1_000_000;
 
 fn main() {
-    let points: Vec<_> = repeat_with(rand::random)
+    let points: Vec<_> = repeat_with(rand::random::<(f64, f64)>)
         .map(|(x, y)| delaunator::Point { x, y })
         .take(N)
         .collect();

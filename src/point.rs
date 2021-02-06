@@ -12,11 +12,22 @@ pub trait Scalar:
     + Neg<Output = Self>
     + PartialOrd<Self>
     + From<f32>
+    + Into<f64>
 {
+    fn abs(self) -> Self;
 }
 
-impl Scalar for f32 {}
-impl Scalar for f64 {}
+impl Scalar for f32 {
+    fn abs(self) -> Self {
+        self.abs()
+    }
+}
+
+impl Scalar for f64 {
+    fn abs(self) -> Self {
+        self.abs()
+    }
+}
 
 /// Represents a 2D point in the input vector.
 #[derive(Clone, Copy, PartialEq)]

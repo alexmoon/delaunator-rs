@@ -1,30 +1,34 @@
-use crate::{util::OptionIndex, Point};
+use crate::{point::Scalar, util::OptionIndex, Point};
 
 /// A value between 0.0 and 1.0 which monotonically increases with real angle,
 /// but doesn't need expensive trigonometry.
-fn pseudo_angle(p: Point<f64>) -> f64 {
+fn pseudo_angle<T: Scalar>(p: Point<T>) -> T {
     let k = p.x / (p.x.abs() + p.y.abs());
-    (if p.y > 0.0 { 3.0 - k } else { 1.0 + k }) / 4.0
+    (if p.y > T::from(0.0) {
+        T::from(3.0) - k
+    } else {
+        T::from(1.0) + k
+    }) / T::from(4.0)
 }
 
 // data structure for tracking the edges of the advancing convex hull
-pub(crate) struct Hull {
+pub(crate) struct Hull<T: Scalar> {
     pub(crate) start: usize,
     pub(crate) prev: Vec<OptionIndex>,
     pub(crate) next: Vec<OptionIndex>,
     pub(crate) tri: Vec<OptionIndex>,
     hash: Vec<OptionIndex>,
-    center: Point<f64>,
+    center: Point<T>,
 }
 
-impl Hull {
+impl<T: Scalar> Hull<T> {
     pub fn new(
         n: usize,
-        center: Point<f64>,
+        center: Point<T>,
         i0: usize,
         i1: usize,
         i2: usize,
-        points: &[Point<f64>],
+        points: &[Point<T>],
     ) -> Self {
         let hash_len = (n as f64).sqrt() as usize;
 
@@ -55,20 +59,20 @@ impl Hull {
         hull
     }
 
-    fn hash_key(&self, p: Point<f64>) -> usize {
+    fn hash_key(&self, p: Point<T>) -> usize {
         let len = self.hash.len();
-        (((len as f64) * pseudo_angle(p - self.center)) as usize) % len
+        ((T::from(len as f32) * pseudo_angle(p - self.center)).into() as usize) % len
     }
 
-    pub(crate) fn hash_edge(&mut self, p: Point<f64>, i: usize) {
+    pub(crate) fn hash_edge(&mut self, p: Point<T>, i: usize) {
         let key = self.hash_key(p);
         self.hash[key] = i.into();
     }
 
     pub(crate) fn find_visible_edge(
         &self,
-        p: Point<f64>,
-        points: &[Point<f64>],
+        p: Point<T>,
+        points: &[Point<T>],
     ) -> (OptionIndex, bool) {
         let mut start = OptionIndex::none();
         let key = self.hash_key(p);

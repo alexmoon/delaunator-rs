@@ -234,7 +234,7 @@ impl Triangulation {
         t
     }
 
-    fn legalize(&mut self, a: usize, points: &[Point<f64>], hull: &mut Hull) -> usize {
+    fn legalize(&mut self, a: usize, points: &[Point<f64>], hull: &mut Hull<f64>) -> usize {
         let b = self.halfedges[a];
 
         // if the pair of triangles doesn't satisfy the Delaunay condition

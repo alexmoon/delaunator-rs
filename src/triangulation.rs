@@ -35,13 +35,13 @@ impl Triangulation {
     /// Triangulate a set of 2D points.
     /// Returns `None` if no triangulation exists for the input (e.g. all points are collinear).
     pub fn new(points: &[Point]) -> Option<Triangulation> {
-        Some(Triangulation::from_seed_triangle(
+        Some(Triangulation::with_seed_triangle(
             points,
             util::find_seed_triangle(points)?,
         ))
     }
 
-    pub fn from_seed_triangle(
+    pub fn with_seed_triangle(
         points: &[Point],
         seed_triangle: (usize, usize, usize),
     ) -> Triangulation {

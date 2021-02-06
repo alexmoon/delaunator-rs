@@ -26,7 +26,7 @@ mod hull;
 pub mod iter;
 pub mod point;
 pub mod triangulation;
-mod util;
+pub mod util;
 
 #[cfg(feature = "mint")]
 mod mint;

@@ -1,5 +1,6 @@
 use crate::Point;
 
+/// Provides approximate equality for floating point values.
 pub trait ApproxEq: Copy {
     fn approx_eq(self, other: Self) -> bool;
 }
@@ -18,10 +19,16 @@ impl ApproxEq for f64 {
     }
 }
 
+/// A space-efficient version of an `Option<usize>`.
+///
+/// Supports values from `0` to `usize::max_usize() - 1`.
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct OptionIndex(usize);
 
 impl OptionIndex {
+    /// Creates a new `OptionIndex`.
+    ///
+    /// Returns `None` if `n` is `usize::max_value()`.
     #[inline(always)]
     pub const fn new(n: usize) -> Option<Self> {
         if n == usize::max_value() {
@@ -31,17 +38,26 @@ impl OptionIndex {
         }
     }
 
+    /// Creates the `None` value.
     #[inline(always)]
     pub const fn none() -> Self {
         OptionIndex(usize::max_value())
     }
 
+    /// Creates a `Some(n)` value.
+    ///
+    /// # Panics
+    /// Panics if `n` is `usize::max_value()`.
     #[inline(always)]
     pub fn some(n: usize) -> Self {
         assert!(n != usize::max_value());
         OptionIndex(n)
     }
 
+    /// Creates a `Some(n)` value.
+    ///
+    /// # Safety
+    /// `n` must be less than `usize::max_value()`.
     #[inline(always)]
     pub const unsafe fn new_unchecked(n: usize) -> Self {
         OptionIndex(n)
@@ -57,6 +73,7 @@ impl OptionIndex {
         !self.is_none()
     }
 
+    /// Converts self into an `Option<usize>`.
     #[inline(always)]
     pub const fn get(self) -> Option<usize> {
         if self.0 == usize::max_value() {
@@ -66,11 +83,21 @@ impl OptionIndex {
         }
     }
 
+    /// Returns the contained Some value, consuming the self value.
+    ///
+    /// # Panics
+    /// Panics if the self value equals `None`.
     #[inline(always)]
     pub fn unwrap(self) -> usize {
         self.get().unwrap()
     }
 
+    /// Returns the contained [`Some`] value, consuming the `self` value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the value is a [`None`] with a custom panic message provided by
+    /// `msg`.
     #[inline(always)]
     pub fn expect(self, msg: &str) -> usize {
         self.get().expect(msg)
@@ -115,7 +142,7 @@ impl From<OptionIndex> for Option<usize> {
 }
 
 /// Next halfedge in a triangle.
-pub fn next_halfedge(i: usize) -> usize {
+pub(crate) fn next_halfedge(i: usize) -> usize {
     if i % 3 == 2 {
         i - 2
     } else {
@@ -124,7 +151,7 @@ pub fn next_halfedge(i: usize) -> usize {
 }
 
 /// Previous halfedge in a triangle.
-pub fn prev_halfedge(i: usize) -> usize {
+pub(crate) fn prev_halfedge(i: usize) -> usize {
     if i % 3 == 0 {
         i + 2
     } else {
@@ -132,7 +159,7 @@ pub fn prev_halfedge(i: usize) -> usize {
     }
 }
 
-pub fn calc_bbox_center(points: &[Point]) -> Point {
+pub(crate) fn calc_bbox_center(points: &[Point]) -> Point {
     let mut min_x = f64::INFINITY;
     let mut min_y = f64::INFINITY;
     let mut max_x = f64::NEG_INFINITY;
@@ -149,7 +176,7 @@ pub fn calc_bbox_center(points: &[Point]) -> Point {
     }
 }
 
-pub fn find_closest_point(points: &[Point], p0: Point) -> Option<usize> {
+pub(crate) fn find_closest_point(points: &[Point], p0: Point) -> Option<usize> {
     let mut min_dist = f64::INFINITY;
     let mut k: usize = 0;
     for (i, &p) in points.iter().enumerate() {
@@ -166,7 +193,7 @@ pub fn find_closest_point(points: &[Point], p0: Point) -> Option<usize> {
     }
 }
 
-pub fn find_seed_triangle(points: &[Point]) -> Option<(usize, usize, usize)> {
+pub(crate) fn find_seed_triangle(points: &[Point]) -> Option<(usize, usize, usize)> {
     // pick a seed point close to the center
     let bbox_center = calc_bbox_center(points);
     let i0 = find_closest_point(points, bbox_center)?;

@@ -1,4 +1,4 @@
-use delaunator::{triangulate, Point, Triangulation, EMPTY};
+use delaunator::{Point, Triangulation};
 use std::f64;
 
 #[test]
@@ -35,19 +35,19 @@ fn robustness() {
 fn bad_input() {
     let mut points = vec![Point { x: 0., y: 0. }];
     assert!(
-        triangulate(&points).is_none(),
+        Triangulation::new(&points).is_none(),
         "Expected empty triangulation (1 point)"
     );
 
     points.push(Point { x: 1., y: 0. });
     assert!(
-        triangulate(&points).is_none(),
+        Triangulation::new(&points).is_none(),
         "Expected empty triangulation (2 point)"
     );
 
     points.push(Point { x: 2., y: 0. });
     assert!(
-        triangulate(&points).is_none(),
+        Triangulation::new(&points).is_none(),
         "Expected empty triangulation (collinear points)"
     );
 
@@ -76,11 +76,11 @@ fn validate(points: &[Point]) {
         triangles,
         halfedges,
         hull,
-    } = triangulate(&points).expect("No triangulation exists for this input");
+    } = Triangulation::new(&points).expect("No triangulation exists for this input");
 
     // validate halfedges
     for (i, &h) in halfedges.iter().enumerate() {
-        if h != EMPTY && halfedges[h] != i {
+        if h.get().map(|h| halfedges[h] != i.into()).unwrap_or(false) {
             panic!("Invalid halfedge connection");
         }
     }

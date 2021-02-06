@@ -1,3 +1,5 @@
+use std::ops::Sub;
+
 use crate::util::ApproxEq;
 
 /// Represents a 2D point in the input vector.
@@ -73,6 +75,17 @@ impl Point {
 
     pub fn nearly_equals(self, p: Self) -> bool {
         self.x.approx_eq(p.x) && self.y.approx_eq(p.y)
+    }
+}
+
+impl Sub for Point {
+    type Output = Point;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Point {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+        }
     }
 }
 

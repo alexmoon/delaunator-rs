@@ -1,7 +1,7 @@
 use criterion::{
     criterion_group, criterion_main, AxisScale, BenchmarkId, Criterion, PlotConfiguration,
 };
-use delaunator::{triangulate, Point};
+use delaunator::{Point, Triangulation};
 use rand::{Rng, SeedableRng};
 use rand_xorshift::XorShiftRng;
 use std::iter::repeat_with;
@@ -21,7 +21,7 @@ fn bench(c: &mut Criterion) {
     for &count in COUNTS {
         group.bench_function(BenchmarkId::from_parameter(count), |b| {
             let points = &all_points[..count];
-            b.iter(move || triangulate(points))
+            b.iter(move || Triangulation::new(points))
         });
     }
 

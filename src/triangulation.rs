@@ -2,35 +2,35 @@ use crate::{
     elem::*,
     hull::Hull,
     iter::*,
-    traits::{ApproxEq, HasPosition, Scalar},
+    traits::{ApproxEq, HasPosition, Index, Scalar},
     util::{self, OptionIndex},
 };
 
 /// Result of the Delaunay triangulation.
-pub struct Triangulation {
+pub struct Triangulation<I> {
     #[cfg(feature = "vertices")]
     /// A vector of triangle point indices where the `i`-th vertex in the array
     /// corresponds to vertex `triangles[i]` for the first triangle containing
     /// vertex `i`.
-    pub vertices: Vec<usize>,
+    pub vertices: Vec<I>,
 
     /// A vector of point indices where each triple represents a Delaunay triangle.
     /// All triangles are directed counter-clockwise in a right-handed coordinate system.
-    pub triangles: Vec<usize>,
+    pub triangles: Vec<I>,
 
     /// A vector of adjacent halfedge indices that allows traversing the triangulation graph.
     ///
     /// `i`-th half-edge in the array corresponds to vertex `triangles[i]`
     /// the half-edge is coming from. `halfedges[i]` is the index of a twin half-edge
     /// in an adjacent triangle (or `EMPTY` for outer half-edges on the convex hull).
-    pub halfedges: Vec<OptionIndex>,
+    pub halfedges: Vec<OptionIndex<I>>,
 
     /// A vector of indices that reference points on the convex hull of the triangulation,
     /// counter-clockwise in a right-handed coordinate system.
-    pub hull: Vec<usize>,
+    pub hull: Vec<I>,
 }
 
-impl Triangulation {
+impl<I: Index> Triangulation<I> {
     fn alloc(n: usize) -> Self {
         let max_triangles = 2 * n - 5;
         Self {
@@ -44,7 +44,7 @@ impl Triangulation {
 
     /// Triangulate a set of 2D points.
     /// Returns `None` if no triangulation exists for the input (e.g. all points are collinear).
-    pub fn new<T: Scalar + ApproxEq, P: HasPosition<T>>(points: &[P]) -> Option<Triangulation> {
+    pub fn new<T: Scalar + ApproxEq, P: HasPosition<T>>(points: &[P]) -> Option<Self> {
         Some(Triangulation::with_seed_triangle(
             points,
             util::find_seed_triangle(points)?,
@@ -54,14 +54,14 @@ impl Triangulation {
     pub fn with_seed_triangle<T: Scalar + ApproxEq, P: HasPosition<T>>(
         points: &[P],
         seed_triangle: (usize, usize, usize),
-    ) -> Triangulation {
+    ) -> Self {
         let n = points.len();
         let (i0, i1, i2) = seed_triangle;
         let center = points[i0]
             .pos()
             .circumcenter(points[i1].pos(), points[i2].pos());
 
-        let mut triangulation = Triangulation::alloc(n);
+        let mut triangulation = Triangulation::<I>::alloc(n);
         triangulation.add_triangle(i0, i1, i2, None.into(), None.into(), None.into());
 
         // sort the points by distance from the seed triangle circumcenter
@@ -89,7 +89,7 @@ impl Triangulation {
 
             // find a visible edge on the convex hull using edge hash
             let (e, walk_back) = hull.find_visible_edge(p, points);
-            let mut e = match e.get() {
+            let mut e = match e {
                 None => continue, // likely a near-duplicate point; skip it
                 Some(e) => e,
             };
@@ -105,8 +105,8 @@ impl Triangulation {
             );
 
             // recursively flip triangles from the point until they satisfy the Delaunay condition
-            hull.tri[i] = triangulation.legalize(t + 2, points, &mut hull).into();
-            hull.tri[e] = t.into(); // keep track of boundary triangles on the hull
+            hull.tri[i] = I::from_usize(triangulation.legalize(t + 2, points, &mut hull)).into();
+            hull.tri[e] = I::from_usize(t).into(); // keep track of boundary triangles on the hull
 
             // walk forward through the hull, adding more triangles and flipping recursively
             let mut n = hull.next[e].unwrap();
@@ -116,7 +116,8 @@ impl Triangulation {
                     break;
                 }
                 let t = triangulation.add_triangle(n, i, q, hull.tri[i], None.into(), hull.tri[n]);
-                hull.tri[i] = triangulation.legalize(t + 2, points, &mut hull).into();
+                hull.tri[i] =
+                    I::from_usize(triangulation.legalize(t + 2, points, &mut hull)).into();
                 hull.next[n] = OptionIndex::none(); // mark as removed
                 n = q;
             }
@@ -131,7 +132,7 @@ impl Triangulation {
                     let t =
                         triangulation.add_triangle(q, i, e, None.into(), hull.tri[e], hull.tri[q]);
                     triangulation.legalize(t + 2, points, &mut hull);
-                    hull.tri[q] = t.into();
+                    hull.tri[q] = I::from_usize(t).into();
                     hull.next[e] = OptionIndex::none(); // mark as removed
                     e = q;
                 }
@@ -152,7 +153,7 @@ impl Triangulation {
         // expose hull as a vector of point indices
         let mut e = hull.start;
         loop {
-            triangulation.hull.push(e);
+            triangulation.hull.push(I::from_usize(e));
             e = hull.next[e].unwrap();
             if e == hull.start {
                 break;
@@ -164,10 +165,11 @@ impl Triangulation {
 
         #[cfg(feature = "vertices")]
         {
-            triangulation.vertices.resize(n, usize::max_value());
+            triangulation.vertices.resize(n, I::max_value());
             for (i, &j) in triangulation.triangles.iter().enumerate() {
-                if triangulation.vertices[j] == usize::max_value() {
-                    triangulation.vertices[j] = i;
+                let j = j.as_usize();
+                if triangulation.vertices[j] == I::max_value() {
+                    triangulation.vertices[j] = I::from_usize(i);
                 }
             }
         }
@@ -184,7 +186,7 @@ impl Triangulation {
         self.len() == 0
     }
 
-    pub fn triangles(&self) -> TriangleIter<'_> {
+    pub fn triangles(&self) -> TriangleIter<'_, I> {
         TriangleIter {
             triangulation: self,
             index: 0,
@@ -192,7 +194,7 @@ impl Triangulation {
         }
     }
 
-    pub fn half_edges(&self) -> HalfEdgeIter<'_> {
+    pub fn half_edges(&self) -> HalfEdgeIter<'_, I> {
         HalfEdgeIter {
             triangulation: self,
             index: 0,
@@ -201,7 +203,7 @@ impl Triangulation {
     }
 
     #[cfg(feature = "vertices")]
-    pub fn vertices(&self) -> VertexIter<'_> {
+    pub fn vertices(&self) -> VertexIter<'_, I> {
         VertexIter {
             triangulation: self,
             index: 0,
@@ -210,18 +212,18 @@ impl Triangulation {
     }
 
     #[cfg(feature = "vertices")]
-    pub fn get_vertex(&self, id: usize) -> Option<Vertex<'_>> {
+    pub fn get_vertex(&self, id: usize) -> Option<Vertex<'_, I>> {
         if id < self.vertices.len() {
             Some(Vertex {
                 triangulation: self,
-                index: self.vertices[id],
+                index: self.vertices[id].as_usize(),
             })
         } else {
             None
         }
     }
 
-    pub fn get_triangle(&self, id: usize) -> Option<Triangle<'_>> {
+    pub fn get_triangle(&self, id: usize) -> Option<Triangle<'_, I>> {
         let index = 3 * id;
         if index < self.triangles.len() {
             Some(Triangle {
@@ -233,7 +235,7 @@ impl Triangulation {
         }
     }
 
-    pub fn get_half_edge(&self, id: usize) -> Option<HalfEdge<'_>> {
+    pub fn get_half_edge(&self, id: usize) -> Option<HalfEdge<'_, I>> {
         if id < self.halfedges.len() {
             Some(HalfEdge {
                 triangulation: self,
@@ -249,28 +251,28 @@ impl Triangulation {
         i0: usize,
         i1: usize,
         i2: usize,
-        a: OptionIndex,
-        b: OptionIndex,
-        c: OptionIndex,
+        a: OptionIndex<I>,
+        b: OptionIndex<I>,
+        c: OptionIndex<I>,
     ) -> usize {
         let t = self.triangles.len();
 
-        self.triangles.push(i0);
-        self.triangles.push(i1);
-        self.triangles.push(i2);
+        self.triangles.push(I::from_usize(i0));
+        self.triangles.push(I::from_usize(i1));
+        self.triangles.push(I::from_usize(i2));
 
         self.halfedges.push(a);
         self.halfedges.push(b);
         self.halfedges.push(c);
 
         if let Some(a) = a.get() {
-            self.halfedges[a] = t.into();
+            self.halfedges[a.as_usize()] = I::from_usize(t).into();
         }
         if let Some(b) = b.get() {
-            self.halfedges[b] = (t + 1).into();
+            self.halfedges[b.as_usize()] = I::from_usize(t + 1).into();
         }
         if let Some(c) = c.get() {
-            self.halfedges[c] = (t + 2).into();
+            self.halfedges[c.as_usize()] = I::from_usize(t + 2).into();
         }
 
         t
@@ -280,7 +282,7 @@ impl Triangulation {
         &mut self,
         a: usize,
         points: &[P],
-        hull: &mut Hull<T>,
+        hull: &mut Hull<T, I>,
     ) -> usize {
         let b = self.halfedges[a];
 
@@ -303,44 +305,44 @@ impl Triangulation {
 
         let b = match b.get() {
             None => return ar,
-            Some(b) => b,
+            Some(b) => b.as_usize(),
         };
 
         let al = util::next_halfedge(a);
         let bl = util::prev_halfedge(b);
 
-        let p0 = self.triangles[ar];
-        let pr = self.triangles[a];
-        let pl = self.triangles[al];
-        let p1 = self.triangles[bl];
+        let p0 = self.triangles[ar].as_usize();
+        let pr = self.triangles[a].as_usize();
+        let pl = self.triangles[al].as_usize();
+        let p1 = self.triangles[bl].as_usize();
 
         let illegal =
             points[p1]
                 .pos()
                 .is_in_circle(points[p0].pos(), points[pr].pos(), points[pl].pos());
         if illegal {
-            self.triangles[a] = p1;
-            self.triangles[b] = p0;
+            self.triangles[a] = I::from_usize(p1);
+            self.triangles[b] = I::from_usize(p0);
 
             let hbl = self.halfedges[bl];
             let har = self.halfedges[ar];
 
             // edge swapped on the other side of the hull (rare); fix the halfedge reference
             if hbl.is_none() {
-                hull.swap_halfedge(bl, a);
+                hull.swap_halfedge(I::from_usize(bl), I::from_usize(a));
             }
 
             self.halfedges[a] = hbl;
             self.halfedges[b] = har;
-            self.halfedges[ar] = bl.into();
+            self.halfedges[ar] = I::from_usize(bl).into();
 
             if let Some(hbl) = hbl.get() {
-                self.halfedges[hbl] = a.into();
+                self.halfedges[hbl.as_usize()] = I::from_usize(a).into();
             }
             if let Some(har) = har.get() {
-                self.halfedges[har] = b.into();
+                self.halfedges[har.as_usize()] = I::from_usize(b).into();
             }
-            self.halfedges[bl] = ar.into();
+            self.halfedges[bl] = I::from_usize(ar).into();
 
             let br = util::next_halfedge(b);
 

@@ -21,7 +21,7 @@ fn bench(c: &mut Criterion) {
     for &count in COUNTS {
         group.bench_function(BenchmarkId::from_parameter(count), |b| {
             let points = &all_points[..count];
-            b.iter(move || Triangulation::new(points))
+            b.iter(move || Triangulation::<u32>::new(points))
         });
     }
 

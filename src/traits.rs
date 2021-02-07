@@ -21,6 +21,63 @@ impl ApproxEq for f64 {
     }
 }
 
+pub trait Index: Copy + PartialEq<Self> {
+    fn max_value() -> Self;
+    fn from_usize(n: usize) -> Self;
+    fn as_usize(self) -> usize;
+}
+
+impl Index for u16 {
+    #[inline]
+    fn max_value() -> Self {
+        u16::max_value()
+    }
+
+    #[inline]
+    fn from_usize(n: usize) -> Self {
+        n as Self
+    }
+
+    #[inline]
+    fn as_usize(self) -> usize {
+        usize::from(self)
+    }
+}
+
+impl Index for u32 {
+    #[inline]
+    fn max_value() -> Self {
+        u32::max_value()
+    }
+
+    #[inline]
+    fn from_usize(n: usize) -> Self {
+        n as Self
+    }
+
+    #[inline]
+    fn as_usize(self) -> usize {
+        self as usize
+    }
+}
+
+impl Index for usize {
+    #[inline]
+    fn max_value() -> Self {
+        usize::max_value()
+    }
+
+    #[inline]
+    fn from_usize(n: usize) -> Self {
+        n
+    }
+
+    #[inline]
+    fn as_usize(self) -> usize {
+        self
+    }
+}
+
 pub trait Scalar:
     Copy
     + Add<Self, Output = Self>

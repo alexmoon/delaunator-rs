@@ -1,5 +1,7 @@
 use delaunator::{Point, Triangulation};
 
+type Index = usize;
+
 #[test]
 fn basic() {
     validate(&load_fixture(include_str!("fixtures/ukraine.json")));
@@ -34,19 +36,19 @@ fn robustness() {
 fn bad_input() {
     let mut points = vec![Point { x: 0., y: 0. }];
     assert!(
-        Triangulation::new(&points).is_none(),
+        Triangulation::<Index>::new(&points).is_none(),
         "Expected empty triangulation (1 point)"
     );
 
     points.push(Point { x: 1., y: 0. });
     assert!(
-        Triangulation::new(&points).is_none(),
+        Triangulation::<Index>::new(&points).is_none(),
         "Expected empty triangulation (2 point)"
     );
 
     points.push(Point { x: 2., y: 0. });
     assert!(
-        Triangulation::new(&points).is_none(),
+        Triangulation::<Index>::new(&points).is_none(),
         "Expected empty triangulation (collinear points)"
     );
 
@@ -76,11 +78,14 @@ fn validate(points: &[Point<f64>]) {
         halfedges,
         hull,
         ..
-    } = Triangulation::new(&points).expect("No triangulation exists for this input");
+    } = Triangulation::<Index>::new(&points).expect("No triangulation exists for this input");
 
     // validate halfedges
     for (i, &h) in halfedges.iter().enumerate() {
-        if h.get().map(|h| halfedges[h] != i.into()).unwrap_or(false) {
+        if h.get()
+            .map(|h| halfedges[h as usize] != (i as Index).into())
+            .unwrap_or(false)
+        {
             panic!("Invalid halfedge connection");
         }
     }
@@ -91,8 +96,8 @@ fn validate(points: &[Point<f64>]) {
         let mut i = 0;
         let mut j = hull.len() - 1;
         while i < hull.len() {
-            let p0 = &points[hull[j]];
-            let p = &points[hull[i]];
+            let p0 = &points[hull[j] as usize];
+            let p = &points[hull[i] as usize];
             hull_areas.push((p.x + p0.x) * (p.y - p0.y));
             j = i;
             i += 1;
@@ -103,9 +108,9 @@ fn validate(points: &[Point<f64>]) {
         let mut triangle_areas = Vec::new();
         let mut i = 0;
         while i < triangles.len() {
-            let a = &points[triangles[i]];
-            let b = &points[triangles[i + 1]];
-            let c = &points[triangles[i + 2]];
+            let a = &points[triangles[i] as usize];
+            let b = &points[triangles[i + 1] as usize];
+            let c = &points[triangles[i + 2] as usize];
             triangle_areas.push(((b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y)).abs());
             i += 3;
         }

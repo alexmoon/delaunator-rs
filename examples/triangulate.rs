@@ -9,8 +9,8 @@ fn main() {
         .collect();
 
     let now = std::time::Instant::now();
-    let result =
-        delaunator::Triangulation::new(&points).expect("No triangulation exists for this input.");
+    let result = delaunator::Triangulation::<usize>::new(&points)
+        .expect("No triangulation exists for this input.");
     let elapsed = now.elapsed();
 
     println!(

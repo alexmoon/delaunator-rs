@@ -16,7 +16,7 @@ let points = vec![
     Point { x: 0., y: 1. },
 ];
 
-let result = Triangulation::new(&points).expect("No triangulation exists.");
+let result = Triangulation::<usize>::new(&points).expect("No triangulation exists.");
 println!("{:?}", result.triangles); // [0, 2, 1, 0, 3, 2]
 ```
 */

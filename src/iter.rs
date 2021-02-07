@@ -2,7 +2,10 @@ use std::iter::FusedIterator;
 
 use super::elem::*;
 use super::Triangulation;
-use crate::util::{next_halfedge, prev_halfedge, OptionIndex};
+use crate::{
+    traits::Index,
+    util::{next_halfedge, prev_halfedge},
+};
 
 /// Iterates over all [HalfEdge]s that start at a [Vertex].
 ///
@@ -12,22 +15,22 @@ use crate::util::{next_halfedge, prev_halfedge, OptionIndex};
 /// Note that on the convex hull, one half-edge connected to the vertex does
 /// not start at that vertex and therefore will not be visited by this iteration.
 #[derive(Clone, Copy)]
-pub struct VertexEdgeIter<'a> {
-    pub(crate) triangulation: &'a Triangulation,
-    pub(crate) start: OptionIndex,
-    pub(crate) index: OptionIndex,
+pub struct VertexEdgeIter<'a, I> {
+    pub(crate) triangulation: &'a Triangulation<I>,
+    pub(crate) start: Option<usize>,
+    pub(crate) index: Option<usize>,
 }
 
-impl<'a> Iterator for VertexEdgeIter<'a> {
-    type Item = HalfEdge<'a>;
+impl<'a, I: Index> Iterator for VertexEdgeIter<'a, I> {
+    type Item = HalfEdge<'a, I>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match (self.index.get(), self.start.get()) {
+        match (self.index, self.start) {
             (None, _) => None,
             (Some(index), None) => {
                 // We've previously hit the convex hull and are now iterating backwards
-                let e = self.triangulation.halfedges[index].get();
-                self.index = e.map(next_halfedge).into();
+                let e = self.triangulation.halfedges[index].get().map(I::as_usize);
+                self.index = e.map(next_halfedge);
 
                 Some(HalfEdge {
                     triangulation: self.triangulation,
@@ -35,17 +38,19 @@ impl<'a> Iterator for VertexEdgeIter<'a> {
                 })
             }
             (Some(index), Some(start)) => {
-                self.index = match self.triangulation.halfedges[prev_halfedge(index)].get() {
+                self.index = match self.triangulation.halfedges[prev_halfedge(index)]
+                    .get()
+                    .map(I::as_usize)
+                {
                     None => {
                         // We've hit the convex hull, start over from the starting index and iterate backwards
-                        let e = self.triangulation.halfedges[start].get();
-                        self.start = None.into();
+                        let e = self.triangulation.halfedges[start].get().map(I::as_usize);
+                        self.start = None;
                         e.map(next_halfedge)
                     }
-                    Some(e) if e == start => None,
+                    Some(e) if e.as_usize() == start => None,
                     e => e,
-                }
-                .into();
+                };
 
                 Some(HalfEdge {
                     triangulation: self.triangulation,
@@ -56,37 +61,37 @@ impl<'a> Iterator for VertexEdgeIter<'a> {
     }
 }
 
-impl<'a> FusedIterator for VertexEdgeIter<'a> {}
+impl<'a, I: Index> FusedIterator for VertexEdgeIter<'a, I> {}
 
 /// Iterates over all [Triangle]s that are adjacent to [Vertex].
 ///
 /// Order of iteration is undefined (generally counter-clockwise, but will
 /// switch to clockwise if the iteration hits the convex hull).
 #[derive(Clone, Copy)]
-pub struct VertexTriangleIter<'a> {
-    pub(crate) inner: VertexEdgeIter<'a>,
+pub struct VertexTriangleIter<'a, I> {
+    pub(crate) inner: VertexEdgeIter<'a, I>,
 }
 
-impl<'a> Iterator for VertexTriangleIter<'a> {
-    type Item = Triangle<'a>;
+impl<'a, I: Index> Iterator for VertexTriangleIter<'a, I> {
+    type Item = Triangle<'a, I>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|x| x.left())
     }
 }
 
-impl<'a> FusedIterator for VertexTriangleIter<'a> {}
+impl<'a, I: Index> FusedIterator for VertexTriangleIter<'a, I> {}
 
 /// Iterates over the three [HalfEdge]s of a [Triangle]
 #[derive(Clone, Copy)]
-pub struct TriangleEdgeIter<'a> {
-    pub(crate) triangulation: &'a Triangulation,
+pub struct TriangleEdgeIter<'a, I> {
+    pub(crate) triangulation: &'a Triangulation<I>,
     pub(crate) index: usize,
     pub(crate) end: usize,
 }
 
-impl<'a> Iterator for TriangleEdgeIter<'a> {
-    type Item = HalfEdge<'a>;
+impl<'a, I> Iterator for TriangleEdgeIter<'a, I> {
+    type Item = HalfEdge<'a, I>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
@@ -102,7 +107,7 @@ impl<'a> Iterator for TriangleEdgeIter<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for TriangleEdgeIter<'a> {
+impl<'a, I> DoubleEndedIterator for TriangleEdgeIter<'a, I> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
             self.end -= 1;
@@ -117,9 +122,9 @@ impl<'a> DoubleEndedIterator for TriangleEdgeIter<'a> {
     }
 }
 
-impl<'a> FusedIterator for TriangleEdgeIter<'a> {}
+impl<'a, I> FusedIterator for TriangleEdgeIter<'a, I> {}
 
-impl<'a> ExactSizeIterator for TriangleEdgeIter<'a> {
+impl<'a, I> ExactSizeIterator for TriangleEdgeIter<'a, I> {
     fn len(&self) -> usize {
         self.end - self.index
     }
@@ -127,14 +132,14 @@ impl<'a> ExactSizeIterator for TriangleEdgeIter<'a> {
 
 /// Iterates over the three [Vertex]s of a [Triangle]
 #[derive(Clone, Copy)]
-pub struct TriangleVertexIter<'a> {
-    pub(crate) triangulation: &'a Triangulation,
+pub struct TriangleVertexIter<'a, I> {
+    pub(crate) triangulation: &'a Triangulation<I>,
     pub(crate) index: usize,
     pub(crate) end: usize,
 }
 
-impl<'a> Iterator for TriangleVertexIter<'a> {
-    type Item = Vertex<'a>;
+impl<'a, I> Iterator for TriangleVertexIter<'a, I> {
+    type Item = Vertex<'a, I>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
@@ -155,7 +160,7 @@ impl<'a> Iterator for TriangleVertexIter<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for TriangleVertexIter<'a> {
+impl<'a, I> DoubleEndedIterator for TriangleVertexIter<'a, I> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
             self.end -= 1;
@@ -170,9 +175,9 @@ impl<'a> DoubleEndedIterator for TriangleVertexIter<'a> {
     }
 }
 
-impl<'a> FusedIterator for TriangleVertexIter<'a> {}
+impl<'a, I> FusedIterator for TriangleVertexIter<'a, I> {}
 
-impl<'a> ExactSizeIterator for TriangleVertexIter<'a> {
+impl<'a, I> ExactSizeIterator for TriangleVertexIter<'a, I> {
     fn len(&self) -> usize {
         self.end - self.index
     }
@@ -180,14 +185,14 @@ impl<'a> ExactSizeIterator for TriangleVertexIter<'a> {
 
 /// Iterates over the [Triangle]s in a [Triangulation]
 #[derive(Clone, Copy)]
-pub struct TriangleIter<'a> {
-    pub(crate) triangulation: &'a Triangulation,
+pub struct TriangleIter<'a, I> {
+    pub(crate) triangulation: &'a Triangulation<I>,
     pub(crate) index: usize,
     pub(crate) end: usize,
 }
 
-impl<'a> Iterator for TriangleIter<'a> {
-    type Item = Triangle<'a>;
+impl<'a, I> Iterator for TriangleIter<'a, I> {
+    type Item = Triangle<'a, I>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
@@ -208,7 +213,7 @@ impl<'a> Iterator for TriangleIter<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for TriangleIter<'a> {
+impl<'a, I> DoubleEndedIterator for TriangleIter<'a, I> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
             self.end -= 3;
@@ -223,9 +228,9 @@ impl<'a> DoubleEndedIterator for TriangleIter<'a> {
     }
 }
 
-impl<'a> FusedIterator for TriangleIter<'a> {}
+impl<'a, I> FusedIterator for TriangleIter<'a, I> {}
 
-impl<'a> ExactSizeIterator for TriangleIter<'a> {
+impl<'a, I> ExactSizeIterator for TriangleIter<'a, I> {
     fn len(&self) -> usize {
         (self.triangulation.triangles.len() - self.index) / 3
     }
@@ -233,14 +238,14 @@ impl<'a> ExactSizeIterator for TriangleIter<'a> {
 
 /// Iterates over the [HalfEdge]s in a [Triangulation]
 #[derive(Clone, Copy)]
-pub struct HalfEdgeIter<'a> {
-    pub(crate) triangulation: &'a Triangulation,
+pub struct HalfEdgeIter<'a, I> {
+    pub(crate) triangulation: &'a Triangulation<I>,
     pub(crate) index: usize,
     pub(crate) end: usize,
 }
 
-impl<'a> Iterator for HalfEdgeIter<'a> {
-    type Item = HalfEdge<'a>;
+impl<'a, I> Iterator for HalfEdgeIter<'a, I> {
+    type Item = HalfEdge<'a, I>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
@@ -261,7 +266,7 @@ impl<'a> Iterator for HalfEdgeIter<'a> {
     }
 }
 
-impl<'a> DoubleEndedIterator for HalfEdgeIter<'a> {
+impl<'a, I> DoubleEndedIterator for HalfEdgeIter<'a, I> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
             self.end -= 1;
@@ -276,9 +281,9 @@ impl<'a> DoubleEndedIterator for HalfEdgeIter<'a> {
     }
 }
 
-impl<'a> FusedIterator for HalfEdgeIter<'a> {}
+impl<'a, I> FusedIterator for HalfEdgeIter<'a, I> {}
 
-impl<'a> ExactSizeIterator for HalfEdgeIter<'a> {
+impl<'a, I> ExactSizeIterator for HalfEdgeIter<'a, I> {
     fn len(&self) -> usize {
         self.end - self.index
     }
@@ -286,19 +291,19 @@ impl<'a> ExactSizeIterator for HalfEdgeIter<'a> {
 
 #[cfg(feature = "vertices")]
 /// Iterates over the [Vertex]es in a [Triangulation]
-pub struct VertexIter<'a> {
-    pub(crate) triangulation: &'a Triangulation,
+pub struct VertexIter<'a, I> {
+    pub(crate) triangulation: &'a Triangulation<I>,
     pub(crate) index: usize,
     pub(crate) end: usize,
 }
 
 #[cfg(feature = "vertices")]
-impl<'a> Iterator for VertexIter<'a> {
-    type Item = Vertex<'a>;
+impl<'a, I: Index> Iterator for VertexIter<'a, I> {
+    type Item = Vertex<'a, I>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
-            let index = self.triangulation.vertices[self.index];
+            let index = self.triangulation.vertices[self.index].as_usize();
             self.index += 1;
             Some(Vertex {
                 triangulation: self.triangulation,
@@ -311,11 +316,11 @@ impl<'a> Iterator for VertexIter<'a> {
 }
 
 #[cfg(feature = "vertices")]
-impl<'a> DoubleEndedIterator for VertexIter<'a> {
+impl<'a, I: Index> DoubleEndedIterator for VertexIter<'a, I> {
     fn next_back(&mut self) -> Option<Self::Item> {
         if self.index < self.end {
             self.end -= 1;
-            let index = self.triangulation.vertices[self.end];
+            let index = self.triangulation.vertices[self.end].as_usize();
             Some(Vertex {
                 triangulation: self.triangulation,
                 index,
@@ -327,10 +332,10 @@ impl<'a> DoubleEndedIterator for VertexIter<'a> {
 }
 
 #[cfg(feature = "vertices")]
-impl<'a> FusedIterator for VertexIter<'a> {}
+impl<'a, I: Index> FusedIterator for VertexIter<'a, I> {}
 
 #[cfg(feature = "vertices")]
-impl<'a> ExactSizeIterator for VertexIter<'a> {
+impl<'a, I: Index> ExactSizeIterator for VertexIter<'a, I> {
     fn len(&self) -> usize {
         self.end - self.index
     }
@@ -350,7 +355,7 @@ mod test {
             Point::new(0.0, -1.0),
         ];
 
-        let triangulation = Triangulation::new(&points).unwrap();
+        let triangulation = Triangulation::<usize>::new(&points).unwrap();
         assert_eq!(
             triangulation.triangles,
             vec![1, 2, 0, 2, 3, 0, 3, 4, 0, 0, 4, 1]

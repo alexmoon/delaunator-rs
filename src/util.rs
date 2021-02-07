@@ -1,21 +1,21 @@
 use crate::{
-    traits::{HasPosition, Scalar},
+    traits::{HasPosition, Index, Scalar},
     Point,
 };
 
-/// A space-efficient version of an `Option<usize>`.
+/// A space-efficient version of an `Option<I: Index>`.
 ///
-/// Supports values from `0` to `usize::max_usize() - 1`.
+/// Supports values from `0` to `I::max_usize() - 1`.
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct OptionIndex(usize);
+pub struct OptionIndex<I>(I);
 
-impl OptionIndex {
+impl<I: Index> OptionIndex<I> {
     /// Creates a new `OptionIndex`.
     ///
-    /// Returns `None` if `n` is `usize::max_value()`.
+    /// Returns `None` if `n` is `I::max_value()`.
     #[inline(always)]
-    pub const fn new(n: usize) -> Option<Self> {
-        if n == usize::max_value() {
+    pub fn new(n: I) -> Option<Self> {
+        if n == I::max_value() {
             None
         } else {
             Some(OptionIndex(n))
@@ -24,43 +24,43 @@ impl OptionIndex {
 
     /// Creates the `None` value.
     #[inline(always)]
-    pub const fn none() -> Self {
-        OptionIndex(usize::max_value())
+    pub fn none() -> Self {
+        OptionIndex(I::max_value())
     }
 
     /// Creates a `Some(n)` value.
     ///
     /// # Panics
-    /// Panics if `n` is `usize::max_value()`.
+    /// Panics if `n` is `I::max_value()`.
     #[inline(always)]
-    pub fn some(n: usize) -> Self {
-        assert!(n != usize::max_value());
+    pub fn some(n: I) -> Self {
+        assert!(n != I::max_value());
         OptionIndex(n)
     }
 
     /// Creates a `Some(n)` value.
     ///
     /// # Safety
-    /// `n` must be less than `usize::max_value()`.
+    /// `n` must be less than `I::max_value()`.
     #[inline(always)]
-    pub const unsafe fn new_unchecked(n: usize) -> Self {
+    pub unsafe fn new_unchecked(n: I) -> Self {
         OptionIndex(n)
     }
 
     #[inline(always)]
-    pub const fn is_none(self) -> bool {
-        self.0 == usize::max_value()
+    pub fn is_none(self) -> bool {
+        self.0 == I::max_value()
     }
 
     #[inline(always)]
-    pub const fn is_some(self) -> bool {
+    pub fn is_some(self) -> bool {
         !self.is_none()
     }
 
-    /// Converts self into an `Option<usize>`.
+    /// Converts self into an `Option<I>`.
     #[inline(always)]
-    pub const fn get(self) -> Option<usize> {
-        if self.0 == usize::max_value() {
+    pub fn get(self) -> Option<I> {
+        if self.0 == I::max_value() {
             None
         } else {
             Some(self.0)
@@ -72,7 +72,7 @@ impl OptionIndex {
     /// # Panics
     /// Panics if the self value equals `None`.
     #[inline(always)]
-    pub fn unwrap(self) -> usize {
+    pub fn unwrap(self) -> I {
         self.get().unwrap()
     }
 
@@ -83,34 +83,34 @@ impl OptionIndex {
     /// Panics if the value is a [`None`] with a custom panic message provided by
     /// `msg`.
     #[inline(always)]
-    pub fn expect(self, msg: &str) -> usize {
+    pub fn expect(self, msg: &str) -> I {
         self.get().expect(msg)
     }
 }
 
-impl Default for OptionIndex {
+impl<I: Index> Default for OptionIndex<I> {
     #[inline(always)]
     fn default() -> Self {
         OptionIndex::none()
     }
 }
 
-impl std::fmt::Debug for OptionIndex {
+impl<I: Index + std::fmt::Debug> std::fmt::Debug for OptionIndex<I> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         self.get().fmt(f)
     }
 }
 
-impl From<usize> for OptionIndex {
+impl<I: Index> From<I> for OptionIndex<I> {
     #[inline(always)]
-    fn from(n: usize) -> Self {
+    fn from(n: I) -> Self {
         OptionIndex(n)
     }
 }
 
-impl From<Option<usize>> for OptionIndex {
+impl<I: Index> From<Option<I>> for OptionIndex<I> {
     #[inline(always)]
-    fn from(n: Option<usize>) -> Self {
+    fn from(n: Option<I>) -> Self {
         match n {
             None => OptionIndex::none(),
             Some(n) => OptionIndex::new(n).unwrap(),
@@ -118,9 +118,9 @@ impl From<Option<usize>> for OptionIndex {
     }
 }
 
-impl From<OptionIndex> for Option<usize> {
+impl<I: Index> From<OptionIndex<I>> for Option<I> {
     #[inline(always)]
-    fn from(n: OptionIndex) -> Option<usize> {
+    fn from(n: OptionIndex<I>) -> Option<I> {
         n.get()
     }
 }

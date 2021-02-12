@@ -32,6 +32,11 @@ pub struct Triangulation<I> {
 
 impl<I: Index> Triangulation<I> {
     fn alloc(n: usize) -> Self {
+        assert!(
+            n <= I::max_value().as_usize() / 2,
+            "Too many points to index a Triangulation by {}",
+            std::any::type_name::<I>()
+        );
         let max_triangles = 2 * n - 5;
         Self {
             #[cfg(feature = "vertices")]

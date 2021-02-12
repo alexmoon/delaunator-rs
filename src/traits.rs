@@ -1,4 +1,7 @@
-use std::ops::{Add, Div, Mul, Neg, Sub};
+use std::{
+    convert::TryInto,
+    ops::{Add, Div, Mul, Neg, Sub},
+};
 
 use crate::Point;
 
@@ -35,7 +38,7 @@ impl Index for u16 {
 
     #[inline]
     fn from_usize(n: usize) -> Self {
-        n as Self
+        n.try_into().unwrap()
     }
 
     #[inline]
@@ -52,11 +55,12 @@ impl Index for u32 {
 
     #[inline]
     fn from_usize(n: usize) -> Self {
-        n as Self
+        n.try_into().unwrap()
     }
 
     #[inline]
     fn as_usize(self) -> usize {
+        assert!(std::mem::size_of::<usize>() >= std::mem::size_of::<u32>());
         self as usize
     }
 }

@@ -32,6 +32,9 @@ pub mod util;
 #[cfg(feature = "mint")]
 mod mint;
 
+#[cfg(feature = "serde")]
+mod serde;
+
 pub use elem::{HalfEdge, Triangle, Vertex};
 pub use point::Point;
 pub use triangulation::Triangulation;
